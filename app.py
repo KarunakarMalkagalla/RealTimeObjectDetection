@@ -118,7 +118,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="title">Real-Time Detection App</div>', unsafe_allow_html=True)
-st.write("Upload an image to get description of the scene.")
+st.write("Upload an image to get a description of the scene.")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
@@ -135,5 +135,5 @@ if uploaded_file:
 
         # Generate and display perception-based description
         perception_description = generate_perception_description(detections, image_np)
-        st.subheader("Perception of the Image")
+        st.subheader("Description of the Image")
         st.write(perception_description)
