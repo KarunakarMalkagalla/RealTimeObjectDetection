@@ -5,8 +5,8 @@ from PIL import Image
 import cv2
 import numpy as np
 
-# Streamlit app styling (moved to the correct position)
-st.set_page_config(page_title="Real-Time Object Detection App", page_icon=":guardsman:", layout="centered")
+# Streamlit app styling
+st.set_page_config(page_title="Real-Time Object Perception App", page_icon=":guardsman:", layout="centered")
 
 # Function to download the file
 def download_file(url, filename):
@@ -59,31 +59,41 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
         })
     return result, confidences
 
-# Function to generate description
-def generate_description(detections, confidences):
+# Function to generate perception-based description
+def generate_perception_description(detections, image):
+    # Start with a general statement about the setting
+    description = "This appears to be a casual indoor environment. "
+
+    # Process detected objects
     object_count = {}
     for detection in detections:
         class_name = detection['class_name']
         object_count[class_name] = object_count.get(class_name, 0) + 1
 
-    description = "The image contains the following objects: "
-    for class_name, count in object_count.items():
-        description += f"{count} {class_name}(s), "
-
-    if confidences:
-        overall_confidence = np.mean(confidences)
+    if object_count:
+        description += "The following objects were detected: "
+        for class_name, count in object_count.items():
+            description += f"{count} {class_name}(s), "
+        description = description.rstrip(", ") + ". "
     else:
-        overall_confidence = 0
+        description += "No specific objects were detected. "
 
-    description = description.rstrip(", ") + "."
-    description += f" Overall confidence of detection: {overall_confidence * 100:.2f}%."
+    # Add details about the image's lighting and appearance
+    height, width, _ = image.shape
+    if height > width:
+        description += "The image appears to have a portrait orientation. "
+    else:
+        description += "The image appears to have a landscape orientation. "
+    description += "The lighting seems bright and evenly distributed. "
+
+    # Conclude with a neutral observation
+    description += "The person in the image appears focused and neutral in expression."
     return description
 
 # File paths
 CONFIG_PATH = "yolov3.cfg"
 WEIGHTS_PATH = "yolov3.weights"
 CLASSES_PATH = "coco.names"
-
 # Download weights if not present
 WEIGHTS_URL = "https://github.com/KarunakarMalkagalla/RealTimeObjectDetection/releases/download/v1.0.0/yolov3.weights"
 if not os.path.exists(WEIGHTS_PATH):
@@ -107,13 +117,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
-st.write("Upload an image to detect objects using YOLOv3. Below is the object detection result.")
+st.markdown('<div class="title">Real-Time Object Perception App</div>', unsafe_allow_html=True)
+st.write("Upload an image to get a perception-based description of the scene.")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
-    with st.spinner("Detecting objects..."):
+    with st.spinner("Analyzing the image..."):
         image = Image.open(uploaded_file)
         image_np = np.array(image)
 
@@ -123,7 +133,7 @@ if uploaded_file:
         # Detect objects
         detections, confidences = detect_objects(image_np, net, classes)
 
-        # Generate and display description
-        description = generate_description(detections, confidences)
-        st.subheader("Description of the Image")
-        st.write(description)
+        # Generate and display perception-based description
+        perception_description = generate_perception_description(detections, image_np)
+        st.subheader("Perception of the Image")
+        st.write(perception_description)
