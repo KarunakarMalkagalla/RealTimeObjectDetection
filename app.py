@@ -95,10 +95,12 @@ if uploaded_file:
         # Detect objects
         detections = detect_objects(image_np, net, classes)
 
-        # Display the detected objects
-        st.subheader("Detected Objects:")
+        # Provide an overall detection summary
+        st.subheader("Overall Detection Summary:")
         if detections:
-            for detection in detections:
-                st.write(f"{detection['class_name']} with confidence {detection['confidence']:.2f}")
+            total_objects = len(detections)
+            detected_classes = set(detection['class_name'] for detection in detections)
+            st.write(f"Total objects detected: {total_objects}")
+            st.write(f"Classes detected: {', '.join(detected_classes)}")
         else:
             st.write("No objects detected.")
