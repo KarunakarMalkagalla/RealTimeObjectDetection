@@ -62,33 +62,7 @@ def detect_objects(image, net, classes, confidence_threshold=0.5, nms_threshold=
             'class_id': class_ids[i],
             'class_name': classes[class_ids[i]]
         })
-    return result, confidences
-
-# Function to generate perception-based description
-def generate_perception_description(detections, image):
-    description = "The scene appears to have the following elements: "
-
-    object_count = {}
-    for detection in detections:
-        class_name = detection['class_name']
-        object_count[class_name] = object_count.get(class_name, 0) + 1
-
-    if object_count:
-        for class_name, count in object_count.items():
-            description += f"{count} {class_name}(s), "
-        description = description.rstrip(", ") + ". "
-    else:
-        description += "No specific objects were detected. "
-
-    # Add image properties
-    height, width, _ = image.shape
-    if height > width:
-        description += "The image appears to have a portrait orientation. "
-    else:
-        description += "The image appears to have a landscape orientation. "
-    description += "Lighting conditions appear consistent. "
-
-    return description
+    return result
 
 # File paths
 CONFIG_PATH = "yolov3.cfg"
@@ -105,22 +79,8 @@ if not os.path.exists(WEIGHTS_PATH):
 net, classes = load_yolo_model(CONFIG_PATH, WEIGHTS_PATH, CLASSES_PATH)
 
 # Streamlit app layout
-st.markdown("""
-    <style>
-    .title {
-        text-align: center;
-        font-size: 40px;
-        color: black;
-        font-weight: bold;
-        background-color: #90EE90;
-        padding: 20px;
-        border-radius: 10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
-st.write("Upload an image to get a description of the scene.")
+st.write("Upload an image to detect objects.")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
@@ -133,9 +93,12 @@ if uploaded_file:
         st.image(image_np, caption="Uploaded Image", use_container_width=True)
 
         # Detect objects
-        detections, confidences = detect_objects(image_np, net, classes)
+        detections = detect_objects(image_np, net, classes)
 
-        # Generate and display perception-based description
-        perception_description = generate_perception_description(detections, image_np)
-        st.subheader("Description of the Image")
-        st.write(perception_description)
+        # Display the detected objects
+        st.subheader("Detected Objects:")
+        if detections:
+            for detection in detections:
+                st.write(f"{detection['class_name']} with confidence {detection['confidence']:.2f}")
+        else:
+            st.write("No objects detected.")
