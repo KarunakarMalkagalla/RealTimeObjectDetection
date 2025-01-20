@@ -4,8 +4,6 @@ import streamlit as st
 from PIL import Image
 import cv2
 import numpy as np
-from sklearn.cluster import KMeans
-from collections import Counter
 
 # Streamlit app styling
 st.set_page_config(page_title="Real-Time Object Detection App", page_icon=":guardsman:", layout="centered")
@@ -61,29 +59,12 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
         })
     return result, confidences
 
-# Function to detect colors
-def detect_colors(image, num_colors=5):
-    image_flat = image.reshape(-1, 3)
-    kmeans = KMeans(n_clusters=num_colors, random_state=0)
-    kmeans.fit(image_flat)
-    dominant_colors = kmeans.cluster_centers_.astype(int)
-    color_labels = Counter(kmeans.labels_).most_common()
-    percentages = [count / len(kmeans.labels_) for _, count in color_labels]
-
-    return [
-        {
-            "color": tuple(dominant_colors[label]),
-            "percentage": percentage
-        }
-        for label, percentage in zip([item[0] for item in color_labels], percentages)
-    ]
-
 # Function to generate perception-based description
-def generate_perception_description(detections, image, color_info):
-    # General perception statement
+def generate_perception_description(detections, image):
+    # Start with a general statement about the setting
     description = "This appears to be a casual indoor environment. "
 
-    # Object details
+    # Process detected objects
     object_count = {}
     for detection in detections:
         class_name = detection['class_name']
@@ -97,24 +78,16 @@ def generate_perception_description(detections, image, color_info):
     else:
         description += "No specific objects were detected. "
 
-    # Color details
-    if color_info:
-        description += "The dominant colors in the image are: "
-        for color in color_info:
-            rgb = color["color"]
-            percentage = color["percentage"] * 100
-            description += f"RGB{rgb} ({percentage:.2f}%), "
-        description = description.rstrip(", ") + ". "
-
-    # Image properties
+    # Add details about the image's lighting and appearance
     height, width, _ = image.shape
     if height > width:
         description += "The image appears to have a portrait orientation. "
     else:
         description += "The image appears to have a landscape orientation. "
+    description += "The lighting seems bright and evenly distributed. "
 
-    # Final perception
-    description += "The lighting seems bright and evenly distributed, and the environment feels calm."
+    # Conclude with a neutral observation
+    description += "The person in the image appears focused and neutral in expression."
     return description
 
 # File paths
@@ -144,8 +117,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
-st.write("Upload an image to detect objects, perceive its description, and analyze colors.")
+st.markdown('<div class="title">Real-Time Detection App</div>', unsafe_allow_html=True)
+st.write("Upload an image to get description of the scene.")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
@@ -160,10 +133,7 @@ if uploaded_file:
         # Detect objects
         detections, confidences = detect_objects(image_np, net, classes)
 
-        # Detect colors
-        color_info = detect_colors(image_np)
-
         # Generate and display perception-based description
-        perception_description = generate_perception_description(detections, image_np, color_info)
-        st.subheader("Description of the Image")
+        perception_description = generate_perception_description(detections, image_np)
+        st.subheader("Perception of the Image")
         st.write(perception_description)
