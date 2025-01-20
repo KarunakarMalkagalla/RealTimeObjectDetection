@@ -22,24 +22,28 @@ def load_yolo_model(config_path, weights_path, classes_path):
         classes = f.read().strip().split('\n')
     return net, classes
 
-# Function to detect objects using YOLO
-def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=0.4):
+# Optimized function to detect objects using YOLO
+def detect_objects(image, net, classes, confidence_threshold=0.5, nms_threshold=0.3):
+    # Convert image to BGR for OpenCV processing
     image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    blob = cv2.dnn.blobFromImage(image_bgr, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+    blob = cv2.dnn.blobFromImage(image_bgr, scalefactor=1/255.0, size=(416, 416), swapRB=True, crop=False)
     net.setInput(blob)
     layer_names = net.getLayerNames()
     output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
     
+    # Forward pass to get predictions
     detections = net.forward(output_layers)
     height, width = image.shape[:2]
 
+    # Initialize lists for storing detection results
     boxes, confidences, class_ids = [], [], []
     for output in detections:
         for detection in output:
-            scores = detection[5:]
+            scores = detection[5:]  # Class probabilities
             class_id = np.argmax(scores)
             confidence = scores[class_id]
             if confidence > confidence_threshold:
+                # Get bounding box coordinates
                 center_x, center_y, w, h = (detection[0:4] * np.array([width, height, width, height])).astype('int')
                 x = int(center_x - w / 2)
                 y = int(center_y - h / 2)
@@ -47,6 +51,7 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
                 confidences.append(float(confidence))
                 class_ids.append(class_id)
 
+    # Apply Non-Maximum Suppression (NMS)
     indices = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, nms_threshold)
     result = []
     for i in indices.flatten():
@@ -61,41 +66,37 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
 
 # Function to generate perception-based description
 def generate_perception_description(detections, image):
-    # Start with a general statement about the setting
-    description = "This appears to be a casual indoor environment. "
+    description = "The scene appears to have the following elements: "
 
-    # Process detected objects
     object_count = {}
     for detection in detections:
         class_name = detection['class_name']
         object_count[class_name] = object_count.get(class_name, 0) + 1
 
     if object_count:
-        description += "The following objects were detected: "
         for class_name, count in object_count.items():
             description += f"{count} {class_name}(s), "
         description = description.rstrip(", ") + ". "
     else:
         description += "No specific objects were detected. "
 
-    # Add details about the image's lighting and appearance
+    # Add image properties
     height, width, _ = image.shape
     if height > width:
         description += "The image appears to have a portrait orientation. "
     else:
         description += "The image appears to have a landscape orientation. "
-    description += "The lighting seems bright and evenly distributed. "
+    description += "Lighting conditions appear consistent. "
 
-    # Conclude with a neutral observation
-    description += "The person in the image appears focused and neutral in expression."
     return description
 
 # File paths
 CONFIG_PATH = "yolov3.cfg"
 WEIGHTS_PATH = "yolov3.weights"
 CLASSES_PATH = "coco.names"
-# Download weights if not present
 WEIGHTS_URL = "https://github.com/KarunakarMalkagalla/RealTimeObjectDetection/releases/download/v1.0.0/yolov3.weights"
+
+# Download weights if not present
 if not os.path.exists(WEIGHTS_PATH):
     with st.spinner("Downloading YOLO weights..."):
         download_file(WEIGHTS_URL, WEIGHTS_PATH)
@@ -103,6 +104,7 @@ if not os.path.exists(WEIGHTS_PATH):
 # Load model and classes
 net, classes = load_yolo_model(CONFIG_PATH, WEIGHTS_PATH, CLASSES_PATH)
 
+# Streamlit app layout
 st.markdown("""
     <style>
     .title {
@@ -117,7 +119,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">Real-Time Detection App</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
 st.write("Upload an image to get a description of the scene.")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
