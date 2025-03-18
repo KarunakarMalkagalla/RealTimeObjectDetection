@@ -1,4 +1,6 @@
-streamlit
-opencv-python-headless
-numpy
-pillow
+numpy==1.26.4
+opencv-python-headless==4.11.0.86
+streamlit==1.45.0
+protobuf==3.20.3
+pillow==11.1.0
+requests==2.32.3
