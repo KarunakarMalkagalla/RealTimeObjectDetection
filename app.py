@@ -47,9 +47,15 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
                 confidences.append(float(confidence))
                 class_ids.append(class_id)
 
+    print(f"Number of boxes before NMS: {len(boxes)}")
+    print(f"Confidences before NMS: {confidences}")
+
     indices = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, nms_threshold)
+
+    print(f"Indices after NMS: {indices}")
+
     result = []
-    if indices is not None:  # Check if indices is not None
+    if indices is not None and len(indices) > 0:  # Ensure indices is not None and has elements
         for i in indices.flatten():
             x, y, w, h = boxes[i]
             result.append({
