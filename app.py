@@ -8,33 +8,31 @@ import numpy as np
 # Streamlit app styling (moved to the correct position)
 st.set_page_config(page_title="Real-Time Object Detection App", page_icon=":guardsman:", layout="centered")
 
-# Function to download the file
+# Function to download the file (adapt URLs for YOLOv5)
 def download_file(url, filename):
     response = requests.get(url, stream=True)
     response.raise_for_status()
     with open(filename, 'wb') as f:
         f.write(response.content)
 
-# Function to load YOLO model
+# Function to load YOLO model (might need adjustments for different versions)
 def load_yolo_model(config_path, weights_path, classes_path):
     net = cv2.dnn.readNet(weights_path, config_path)
     with open(classes_path, 'r') as f:
         classes = f.read().strip().split('\n')
     return net, classes
 
-# Function to detect objects using YOLO
+# Function to detect objects using YOLO (might need adjustments for output layers)
 def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=0.4):
     image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    blob = cv2.dnn.blobFromImage(image_bgr, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+    blob = cv2.dnn.blobFromImage(image_bgr, 1/255.0, (640, 640), swapRB=True, crop=False) # YOLOv5 input size and scaling
     net.setInput(blob)
-    layer_names = net.getLayerNames()
-    output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
-
-    detections = net.forward(output_layers)
+    output_layers_names = net.getUnconnectedOutLayersNames() # Get output layer names for YOLOv5
+    outputs = net.forward(output_layers_names)
     height, width = image.shape[:2]
 
     boxes, confidences, class_ids = [], [], []
-    for output in detections:
+    for output in outputs:
         for detection in output:
             scores = detection[5:]
             class_id = np.argmax(scores)
@@ -47,15 +45,9 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
                 confidences.append(float(confidence))
                 class_ids.append(class_id)
 
-    print(f"Number of boxes before NMS: {len(boxes)}")
-    print(f"Confidences before NMS: {confidences}")
-
     indices = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, nms_threshold)
-
-    print(f"Indices after NMS: {indices}")
-
     result = []
-    if indices is not None and len(indices) > 0:  # Ensure indices is not None and has elements
+    if indices is not None:
         for i in indices.flatten():
             x, y, w, h = boxes[i]
             result.append({
@@ -66,7 +58,7 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
             })
     return result, confidences
 
-# Function to generate description
+# Function to generate description (remains the same)
 def generate_description(detections, confidences):
     object_count = {}
     for detection in detections:
@@ -86,50 +78,40 @@ def generate_description(detections, confidences):
     description += f" Overall confidence of detection: {overall_confidence * 100:.2f}%."
     return description
 
-# File paths
-CONFIG_PATH = "yolov3.cfg"
-WEIGHTS_PATH = "yolov3.weights"
+# File paths (UPDATE THESE FOR YOLOv5 ONNX AND CONFIG)
+CONFIG_PATH = "yolov5s.onnx"  # Assuming you exported to ONNX
+WEIGHTS_PATH = ""  # Weights are embedded in the ONNX file
 CLASSES_PATH = "coco.names"
-# Download weights if not present
-WEIGHTS_URL = "https://github.com/KarunakarMalkagalla/RealTimeObjectDetection/releases/download/v1.0.0/yolov3.weights"
-if not os.path.exists(WEIGHTS_PATH):
-    with st.spinner("Downloading YOLO weights..."):
-        download_file(WEIGHTS_URL, WEIGHTS_PATH)
+
+# Download weights (ADAPT URL FOR YOLOv5 ONNX IF NEEDED)
+ONNX_URL = "URL_TO_YOUR_YOLOV5S_ONNX_FILE"
+if not os.path.exists(CONFIG_PATH):
+    with st.spinner("Downloading YOLOv5 ONNX model..."):
+        download_file(ONNX_URL, CONFIG_PATH)
+if not os.path.exists(CLASSES_PATH):
+    with st.spinner("Downloading COCO class names..."):
+        classes_url = "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/coco.names"
+        download_file(classes_url, CLASSES_PATH)
 
 # Load model and classes
 net, classes = load_yolo_model(CONFIG_PATH, WEIGHTS_PATH, CLASSES_PATH)
 
-st.markdown("""
-    <style>
-    .title {
-        text-align: center;
-        font-size: 40px;
-        color: black;
-        font-weight: bold;
-        background-color: #90EE90;
-        padding: 20px;
-        border-radius: 10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Streamlit UI (remains largely the same)
+st.markdown(...)
+st.markdown(...)
+st.write(...)
 
-st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
-st.write("Upload an image to detect objects using YOLOv3. Below is the object detection result.")
-
-uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader(...)
 
 if uploaded_file:
     with st.spinner("Detecting objects..."):
         image = Image.open(uploaded_file)
         image_np = np.array(image)
 
-        # Display the uploaded image
-        st.image(image_np, caption="Uploaded Image", use_container_width=True)
+        st.image(...)
 
-        # Detect objects
         detections, confidences = detect_objects(image_np, net, classes)
 
-        # Generate and display description
         description = generate_description(detections, confidences)
-        st.subheader("Description of the Image")
+        st.subheader(...)
         st.write(description)
