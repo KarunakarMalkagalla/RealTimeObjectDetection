@@ -8,26 +8,26 @@ import numpy as np
 # Streamlit app styling (moved to the correct position)
 st.set_page_config(page_title="Real-Time Object Detection App", page_icon=":guardsman:", layout="centered")
 
-# Function to download the file (adapt URLs for YOLOv5)
+# Function to download the file
 def download_file(url, filename):
     response = requests.get(url, stream=True)
     response.raise_for_status()
     with open(filename, 'wb') as f:
         f.write(response.content)
 
-# Function to load YOLO model (might need adjustments for different versions)
+# Function to load YOLO model
 def load_yolo_model(config_path, weights_path, classes_path):
     net = cv2.dnn.readNet(weights_path, config_path)
     with open(classes_path, 'r') as f:
         classes = f.read().strip().split('\n')
     return net, classes
 
-# Function to detect objects using YOLO (might need adjustments for output layers)
+# Function to detect objects using YOLOv5 ONNX
 def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=0.4):
     image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    blob = cv2.dnn.blobFromImage(image_bgr, 1/255.0, (640, 640), swapRB=True, crop=False) # YOLOv5 input size and scaling
+    blob = cv2.dnn.blobFromImage(image_bgr, 1/255.0, (640, 640), swapRB=True, crop=False)
     net.setInput(blob)
-    output_layers_names = net.getUnconnectedOutLayersNames() # Get output layer names for YOLOv5
+    output_layers_names = net.getUnconnectedOutLayersNames()
     outputs = net.forward(output_layers_names)
     height, width = image.shape[:2]
 
@@ -58,7 +58,7 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
             })
     return result, confidences
 
-# Function to generate description (remains the same)
+# Function to generate description
 def generate_description(detections, confidences):
     object_count = {}
     for detection in detections:
@@ -78,40 +78,57 @@ def generate_description(detections, confidences):
     description += f" Overall confidence of detection: {overall_confidence * 100:.2f}%."
     return description
 
-# File paths (UPDATE THESE FOR YOLOv5 ONNX AND CONFIG)
-CONFIG_PATH = "yolov5s.onnx"  # Assuming you exported to ONNX
+# File paths for YOLOv5
+CONFIG_PATH = "yolov5s.onnx"
 WEIGHTS_PATH = ""  # Weights are embedded in the ONNX file
 CLASSES_PATH = "coco.names"
 
-# Download weights (ADAPT URL FOR YOLOv5 ONNX IF NEEDED)
-ONNX_URL = "URL_TO_YOUR_YOLOV5S_ONNX_FILE"
+# Download YOLOv5 ONNX model if not present
+ONNX_URL = "https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5s.onnx"
 if not os.path.exists(CONFIG_PATH):
     with st.spinner("Downloading YOLOv5 ONNX model..."):
         download_file(ONNX_URL, CONFIG_PATH)
+
+# Download COCO class names if not present
+CLASSES_URL = "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/coco.names"
 if not os.path.exists(CLASSES_PATH):
     with st.spinner("Downloading COCO class names..."):
-        classes_url = "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/coco.names"
-        download_file(classes_url, CLASSES_PATH)
+        download_file(CLASSES_URL, CLASSES_PATH)
 
 # Load model and classes
 net, classes = load_yolo_model(CONFIG_PATH, WEIGHTS_PATH, CLASSES_PATH)
 
-# Streamlit UI (remains largely the same)
-st.markdown(...)
-st.markdown(...)
-st.write(...)
+st.markdown("""
+    <style>
+    .title {
+        text-align: center;
+        font-size: 40px;
+        color: black;
+        font-weight: bold;
+        background-color: #90EE90;
+        padding: 20px;
+        border-radius: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader(...)
+st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
+st.write("Upload an image to detect objects using YOLOv5. Below is the object detection result.")
+
+uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     with st.spinner("Detecting objects..."):
         image = Image.open(uploaded_file)
         image_np = np.array(image)
 
-        st.image(...)
+        # Display the uploaded image
+        st.image(image_np, caption="Uploaded Image", use_container_width=True)
 
+        # Detect objects
         detections, confidences = detect_objects(image_np, net, classes)
 
+        # Generate and display description
         description = generate_description(detections, confidences)
-        st.subheader(...)
+        st.subheader("Description of the Image")
         st.write(description)
