@@ -29,7 +29,7 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
     net.setInput(blob)
     layer_names = net.getLayerNames()
     output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
-    
+
     detections = net.forward(output_layers)
     height, width = image.shape[:2]
 
@@ -49,14 +49,15 @@ def detect_objects(image, net, classes, confidence_threshold=0.7, nms_threshold=
 
     indices = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, nms_threshold)
     result = []
-    for i in indices.flatten():
-        x, y, w, h = boxes[i]
-        result.append({
-            'box': [x, y, w, h],
-            'confidence': confidences[i],
-            'class_id': class_ids[i],
-            'class_name': classes[class_ids[i]]
-        })
+    if indices is not None:  # Check if indices is not None
+        for i in indices.flatten():
+            x, y, w, h = boxes[i]
+            result.append({
+                'box': [x, y, w, h],
+                'confidence': confidences[i],
+                'class_id': class_ids[i],
+                'class_name': classes[class_ids[i]]
+            })
     return result, confidences
 
 # Function to generate description
