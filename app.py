@@ -5,7 +5,7 @@ from PIL import Image
 import cv2
 import numpy as np
 
-# Streamlit app styling (moved to the correct position)
+# Streamlit app styling
 st.set_page_config(page_title="Real-Time Object Detection App", page_icon=":guardsman:", layout="centered")
 
 # Function to download the file
@@ -80,7 +80,7 @@ def generate_description(detections, confidences):
 
 # File paths for YOLOv5
 CONFIG_PATH = "yolov5s.onnx"
-WEIGHTS_PATH = ""  # Weights are embedded in the ONNX file
+WEIGHTS_PATH = ""
 CLASSES_PATH = "coco.names"
 
 # Download YOLOv5 ONNX model if not present
@@ -88,6 +88,8 @@ ONNX_URL = "https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5s
 if not os.path.exists(CONFIG_PATH):
     with st.spinner("Downloading YOLOv5 ONNX model..."):
         download_file(ONNX_URL, CONFIG_PATH)
+
+print(f"Checking if ONNX file exists: {os.path.exists(CONFIG_PATH)}") # Added check
 
 # Download COCO class names if not present
 CLASSES_URL = "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/coco.names"
@@ -98,37 +100,21 @@ if not os.path.exists(CLASSES_PATH):
 # Load model and classes
 net, classes = load_yolo_model(CONFIG_PATH, WEIGHTS_PATH, CLASSES_PATH)
 
-st.markdown("""
-    <style>
-    .title {
-        text-align: center;
-        font-size: 40px;
-        color: black;
-        font-weight: bold;
-        background-color: #90EE90;
-        padding: 20px;
-        border-radius: 10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.markdown(...)
+st.markdown(...)
+st.write(...)
 
-st.markdown('<div class="title">Real-Time Object Detection App</div>', unsafe_allow_html=True)
-st.write("Upload an image to detect objects using YOLOv5. Below is the object detection result.")
-
-uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader(...)
 
 if uploaded_file:
     with st.spinner("Detecting objects..."):
         image = Image.open(uploaded_file)
         image_np = np.array(image)
 
-        # Display the uploaded image
-        st.image(image_np, caption="Uploaded Image", use_container_width=True)
+        st.image(...)
 
-        # Detect objects
         detections, confidences = detect_objects(image_np, net, classes)
 
-        # Generate and display description
         description = generate_description(detections, confidences)
-        st.subheader("Description of the Image")
+        st.subheader(...)
         st.write(description)
