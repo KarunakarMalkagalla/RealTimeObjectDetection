@@ -1,4 +1,29 @@
 import os
+# ... (rest of your imports and functions)
+
+# File paths for YOLOv5
+CONFIG_PATH = "yolov5s.onnx"
+WEIGHTS_PATH = ""
+CLASSES_PATH = "coco.names"
+
+# Download YOLOv5 ONNX model if not present
+ONNX_URL = "https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5s.onnx"
+if not os.path.exists(CONFIG_PATH):
+    with st.spinner("Downloading YOLOv5 ONNX model..."):
+        download_file(ONNX_URL, CONFIG_PATH)
+
+print(f"Current working directory: {os.getcwd()}") # Add this line
+print(f"Checking if ONNX file exists: {os.path.exists(CONFIG_PATH)}")
+
+# Download COCO class names if not present
+CLASSES_URL = "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/coco.names"
+if not os.path.exists(CLASSES_PATH):
+    with st.spinner("Downloading COCO class names..."):
+        download_file(CLASSES_URL, CLASSES_PATH)
+
+# Load model and classes
+net, classes = load_yolo_model(CONFIG_PATH, WEIGHTS_PATH, CLASSES_PATH)
+import os
 import requests
 import streamlit as st
 from PIL import Image
